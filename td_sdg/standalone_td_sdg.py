@@ -33,7 +33,7 @@ parser.add_argument("--width", type=int, default=960, help="Width of image")
 parser.add_argument("--num_frames", type=int, default=1000, help="Number of frames to record")
 parser.add_argument("--distractors", type=str, default="warehouse",
                     help="Options are 'warehouse' (default), 'additional' or None")
-parser.add_argument("--data_dir", type=str, default=os.getcwd() + "/_palletjack_data",
+parser.add_argument("--data_dir", type=str, default=os.getcwd() + "/_td06_data",
                     help="Location where data will be output")
 
 args, _ = parser.parse_known_args()
@@ -65,7 +65,7 @@ from omni.isaac.core.utils.semantics import get_semantics  # noqa
 rep.settings.carb_settings("/omni/replicator/RTSubframes", 4)
 
 # Your object(s)
-PALLETJACKS = ["/home/tndlux/Downloads/TD/10F1100-0606_minimal.usd"]
+TD06 = ["/home/tndlux/Downloads/TD/10F1100-0606_minimal.usd"]
 
 # Distractors (unchanged)
 DISTRACTORS_WAREHOUSE = 2 * [
@@ -251,15 +251,15 @@ def full_textures_list():
     return [prefix_with_isaac_asset_server(t) for t in TEXTURES]
 
 
-def add_palletjacks():
+def add_td06s():
     """Spawn via Replicator first; if nothing appears, fall back to USD references under /World."""
     stage = get_current_stage()
-    asset_paths = [normalize_asset_path(p) for p in PALLETJACKS]
+    asset_paths = [normalize_asset_path(p) for p in TD06]
 
     # spawn many copies for bin-picking scenario (replicator will place them under /Replicator/Ref_Xform_*)
     # adjust count as needed
-    rep_obj_list = [rep.create.from_usd(p, semantics=[("class", "palletjack")], count=100) for p in asset_paths]
-    rep_palletjack_group = rep.create.group(rep_obj_list)
+    rep_obj_list = [rep.create.from_usd(p, semantics=[("class", "td06")], count=100) for p in asset_paths]
+    rep_td06_group = rep.create.group(rep_obj_list)
 
     # give things a few frames to materialize
     for _ in range(10):
@@ -274,26 +274,26 @@ def add_palletjacks():
 
     if found_replicator_instances:
         carb.log_info("[SDG] Spawned via Replicator (Ref_Xform found).")
-        return rep_palletjack_group
+        return rep_td06_group
 
     # fallback: add USD references under /World and tag semantics
     carb.log_warn("[SDG] Replicator instances not found; falling back to USD references under /World.")
     total = max(1, 2 * len(asset_paths))
     src = asset_paths[0]
     for i in range(total):
-        path = f"/World/palletjack_{i:02d}"
+        path = f"/World/td06_{i:02d}"
         xform = UsdGeom.Xform.Define(stage, Sdf.Path(path))
         prim = xform.GetPrim()
         prim.GetReferences().ClearReferences()
         prim.GetReferences().AddReference(src)
-        sem = Semantics.SemanticsAPI.Apply(prim, "palletjack_sem")
+        sem = Semantics.SemanticsAPI.Apply(prim, "td06_sem")
         sem.GetSemanticTypeAttr().Set("class")
-        sem.GetSemanticDataAttr().Set("palletjack")
+        sem.GetSemanticDataAttr().Set("td06")
 
     for _ in range(10):
         simulation_app.update()
 
-    return rep.get.prims(path_pattern="/World/palletjack_*")
+    return rep.get.prims(path_pattern="/World/td06_*")
 
 
 def add_distractors(distractor_type="warehouse"):
@@ -398,7 +398,7 @@ def _find_model_bind_targets():
     """
     Find prims to bind the material to.
     Prefer binding on '/Replicator/Ref_Xform_*/Ref' so it cascades to children.
-    Fall back to '/World/palletjack_*' if we used the manual USD reference path.
+    Fall back to '/World/td06_*' if we used the manual USD reference path.
     """
     stage = get_current_stage()
     targets = []
@@ -412,7 +412,7 @@ def _find_model_bind_targets():
     if not targets:
         for prim in stage.Traverse():
             p = str(prim.GetPath())
-            if p.startswith("/World/palletjack_"):
+            if p.startswith("/World/td06_"):
                 targets.append(p)
 
     return targets
@@ -458,11 +458,11 @@ def main():
         simulation_app.update()
 
     textures = full_textures_list()
-    rep_palletjack_group = add_palletjacks()
+    rep_td06_group = add_td06s()
     rep_distractor_group = add_distractors(distractor_type=args.distractors)
 
-    # Keep only 'palletjack' semantics
-    update_semantics(stage=stage, keep_semantics=["palletjack"])
+    # Keep only 'td06' semantics
+    update_semantics(stage=stage, keep_semantics=["td06"])
 
     # Camera
     cam = rep.create.camera(clipping_range=(0.1, 1_000_000))
@@ -511,7 +511,7 @@ def main():
             )
 
         # Object pose randomization (fixed scale 0.01)
-        with rep_palletjack_group:
+        with rep_td06_group:
             rep.modify.pose(
                 position=rep.distribution.uniform((-0.2, -0.15, 0.02), (0.2, 0.15, 0.2)),
                 rotation=rep.distribution.uniform((0, -45, 0), (0, 45, 360)),
@@ -554,14 +554,26 @@ def main():
         with rep.get.prims(path_pattern="SM_Wall"):
             rep.randomizer.materials(random_mat_wall)
 
-    # Writer (KITTI as in original)
-    writer = rep.WriterRegistry.get("KittiWriter")
+    # Writer (COCO for YOLOv8)
+    writer = rep.WriterRegistry.get("CocoWriter")
     output_directory = args.data_dir
     print("Outputting data to ", output_directory)
 
+    # COCO category mapping — ids should be unique & positive
+    coco_categories = {
+        "td06": {"id": 1, "name": "td06", "color": [255, 0, 0]}  # color is just for preview/debug
+    }
+
     writer.initialize(
         output_dir=output_directory,
-        omit_semantic_type=True,
+        categories=coco_categories,
+        # turn on what you need:
+        write_rgb=True,
+        write_bbox_2d_tight=True,
+        # optional toggles:
+        # write_bbox_2d_loose=False,
+        write_semantic=True,   # set True if you also want per-pixel semantic masks
+        write_instance=True,   # set True if you also want instance masks (for instance/seg models)
     )
 
     RESOLUTION = (CONFIG["width"], CONFIG["height"])
