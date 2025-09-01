@@ -36,7 +36,13 @@ parser.add_argument("--distractors", type=str, default="warehouse",
 parser.add_argument("--data_dir", type=str, default=os.getcwd() + "/_td06_data",
                     help="Location where data will be output")
 
-parser.add_argument("--source_dir", type=str, default="/home/tndlux/Downloads/TD/", help="Source dir for model and materials")
+# Default to the directory containing this script so the repo is relocatable
+parser.add_argument(
+    "--source_dir",
+    type=str,
+    default=os.path.dirname(os.path.abspath(__file__)),
+    help="Source dir for model and materials (default: this script's directory; can be parent; script auto-detects 'models' and 'Materials')",
+)
 
 args, _ = parser.parse_known_args()
 
@@ -67,8 +73,52 @@ from omni.isaac.core.utils.semantics import get_semantics  # noqa
 # Replicator settings
 rep.settings.carb_settings("/omni/replicator/RTSubframes", 4)
 
-# Your object(s)
-TD06 = [CONFIG["source_dir"] + "10F1100-0606_minimal.usd"]
+def _expand(p: str) -> str:
+    return os.path.expanduser(p)
+
+
+def _resolve_asset_and_material_dirs(base_dir: str):
+    """Resolve where the model USD and Materials folder actually live.
+
+    Accepts a base directory (possibly the td_sdg/ folder), and returns a tuple:
+    (asset_dir, materials_dir or None).
+    """
+    base_dir = _expand(base_dir)
+
+    # Candidate locations for the model USD
+    model_name = "10F1100-0606_minimal.usd"
+    candidates_asset = [
+        base_dir,
+        os.path.join(base_dir, "models"),
+    ]
+
+    asset_dir = None
+    for c in candidates_asset:
+        if os.path.isfile(os.path.join(c, model_name)):
+            asset_dir = c
+            break
+    if asset_dir is None:
+        # Fall back to the user-provided base even if the file isn't present;
+        # later code will warn and continue gracefully.
+        asset_dir = base_dir
+
+    # Candidate locations for the Materials folder
+    candidates_mat = [
+        os.path.join(base_dir, "Materials"),
+        os.path.join(asset_dir, "Materials"),
+    ]
+    materials_dir = next((m for m in candidates_mat if os.path.isdir(m)), None)
+
+    return asset_dir, materials_dir
+
+
+# Resolved directories for assets/materials
+ASSET_DIR, MATERIALS_DIR = _resolve_asset_and_material_dirs(CONFIG["source_dir"])
+
+
+# Your object(s) (resolved at runtime)
+def get_td06_asset_paths():
+    return [os.path.join(ASSET_DIR, "10F1100-0606_minimal.usd")]
 
 # Distractors (unchanged)
 DISTRACTORS_WAREHOUSE = 2 * [
@@ -177,13 +227,24 @@ TEXTURES = [
     "/Isaac/Materials/Textures/Patterns/nv_wooden_wall.jpg",
 ]
 
-# === Local USD materials (user updated list) ===
-LOCAL_MATERIAL_FILES = [
-    CONFIG["source_dir"] + "Materials/Aluminum_Brushed.Material.usd",
-    CONFIG["source_dir"] + "Materials/Stainless_Steel_Shiny_Smudged.Material.usd",
-    CONFIG["source_dir"] + "Materials/Steel_Carbon.Material.usd",
-    CONFIG["source_dir"] + "Materials/Stainless_Steel_Cast_Shiny.Material.usd",
-]
+def get_local_material_files():
+    """Return list of local USD material file paths that exist, if any."""
+    names = [
+        "Aluminum_Brushed.Material.usd",
+        "Stainless_Steel_Shiny_Smudged.Material.usd",
+        "Steel_Carbon.Material.usd",
+        "Stainless_Steel_Cast_Shiny.Material.usd",
+    ]
+    paths = []
+    if MATERIALS_DIR and os.path.isdir(MATERIALS_DIR):
+        for n in names:
+            p = os.path.join(MATERIALS_DIR, n)
+            if os.path.isfile(p):
+                paths.append(p)
+            else:
+                # Defer logging until carb is available in main(); keep track of missing
+                pass
+    return paths
 
 # === Online MDL materials to include as well ===
 ONLINE_MDL_URLS = [
@@ -197,6 +258,7 @@ ONLINE_MDL_URLS = [
 
 def normalize_asset_path(p: str) -> str:
     """Return a path usable by USD regardless of current stage root."""
+    p = os.path.expanduser(p)
     if p.startswith(("file://", "omniverse://", "http://", "https://")):
         return p
     if os.path.isabs(p):
@@ -257,7 +319,16 @@ def full_textures_list():
 def add_td06s():
     """Spawn via Replicator first; if nothing appears, fall back to USD references under /World."""
     stage = get_current_stage()
-    asset_paths = [normalize_asset_path(p) for p in TD06]
+    asset_paths = [normalize_asset_path(p) for p in get_td06_asset_paths()]
+
+    # Warn early if the asset file is missing
+    for ap in asset_paths:
+        # strip file:// for existence check
+        ap_fs = ap.replace("file://", "") if ap.startswith("file://") else ap
+        if ap.startswith("http") or ap.startswith("omniverse://"):
+            continue
+        if not os.path.isfile(ap_fs):
+            carb.log_warn(f"[SDG] Model USD not found at {ap_fs}. The object may fail to spawn.")
 
     # spawn many copies for bin-picking scenario (replicator will place them under /Replicator/Ref_Xform_*)
     # adjust count as needed
@@ -473,8 +544,13 @@ def main():
     # ---- Import & create materials (once) ----
     material_prim_paths = []
 
-    # Import local USD materials and add them to the list
-    for local_file in LOCAL_MATERIAL_FILES:
+    # Import local USD materials (if present) and add them to the list
+    local_material_files = get_local_material_files()
+
+    if MATERIALS_DIR and not local_material_files:
+        carb.log_warn(f"[SDG] No expected local material USD files found under {MATERIALS_DIR}. Skipping local materials.")
+
+    for local_file in local_material_files:
         try:
             mp = import_usd_material(local_file)
             if mp:
