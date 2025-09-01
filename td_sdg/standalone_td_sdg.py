@@ -36,6 +36,8 @@ parser.add_argument("--distractors", type=str, default="warehouse",
 parser.add_argument("--data_dir", type=str, default=os.getcwd() + "/_td06_data",
                     help="Location where data will be output")
 
+parser.add_argument("--source_dir", type=str, default="/home/tndlux/Downloads/TD/", help="Source dir for model and materials")
+
 args, _ = parser.parse_known_args()
 
 # App config
@@ -45,6 +47,7 @@ CONFIG = {
     "width": args.width,
     "height": args.height,
     "num_frames": args.num_frames,
+    "source_dir": args.source_dir
 }
 
 simulation_app = SimulationApp(launch_config=CONFIG)
@@ -65,7 +68,7 @@ from omni.isaac.core.utils.semantics import get_semantics  # noqa
 rep.settings.carb_settings("/omni/replicator/RTSubframes", 4)
 
 # Your object(s)
-TD06 = ["/home/tndlux/Downloads/TD/10F1100-0606_minimal.usd"]
+TD06 = [CONFIG["source_dir"] + "10F1100-0606_minimal.usd"]
 
 # Distractors (unchanged)
 DISTRACTORS_WAREHOUSE = 2 * [
@@ -176,10 +179,10 @@ TEXTURES = [
 
 # === Local USD materials (user updated list) ===
 LOCAL_MATERIAL_FILES = [
-    "/home/tndlux/Downloads/TD/Materials/Aluminum_Brushed.Material.usd",
-    "/home/tndlux/Downloads/TD/Materials/Stainless_Steel_Shiny_Smudged.Material.usd",
-    "/home/tndlux/Downloads/TD/Materials/Steel_Carbon.Material.usd",
-    "/home/tndlux/Downloads/TD/Materials/Stainless_Steel_Cast_Shiny.Material.usd",
+    CONFIG["source_dir"] + "Materials/Aluminum_Brushed.Material.usd",
+    CONFIG["source_dir"] + "Materials/Stainless_Steel_Shiny_Smudged.Material.usd",
+    CONFIG["source_dir"] + "Materials/Steel_Carbon.Material.usd",
+    CONFIG["source_dir"] + "Materials/Stainless_Steel_Cast_Shiny.Material.usd",
 ]
 
 # === Online MDL materials to include as well ===
