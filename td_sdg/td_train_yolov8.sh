@@ -8,7 +8,7 @@ IFS=$'\n\t'
 # Defaults (override via env vars)
 OUT_ROOT=${OUT_ROOT:-"$HOME/synthetic_out"}
 MODEL=${MODEL:-"yolov8s.pt"}
-EPOCHS=${EPOCHS:-100}
+EPOCHS=${EPOCHS:-50}
 BATCH=${BATCH:-16}
 IMG_SIZE=${IMG_SIZE:-640}
 DEVICE=${DEVICE:-0}

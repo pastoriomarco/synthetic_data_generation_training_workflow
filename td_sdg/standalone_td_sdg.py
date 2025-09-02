@@ -122,37 +122,15 @@ def get_td06_asset_paths():
 
 # Distractors (unchanged)
 DISTRACTORS_WAREHOUSE = 2 * [
-    "/Isaac/Environments/Simple_Warehouse/Props/S_TrafficCone.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/S_WetFloorSign.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_BarelPlastic_A_01.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_BarelPlastic_A_02.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_BarelPlastic_A_03.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_BarelPlastic_B_01.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_BarelPlastic_B_01.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_BarelPlastic_B_03.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_BarelPlastic_C_02.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_BottlePlasticA_02.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_BottlePlasticB_01.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_BottlePlasticA_02.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_BottlePlasticA_02.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_BottlePlasticD_01.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_BottlePlasticE_01.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_BucketPlastic_B.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_CardBoxB_01_1262.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_CardBoxB_01_1268.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_CardBoxB_01_1482.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_CardBoxB_01_1683.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_CardBoxB_01_291.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_CardBoxD_01_1454.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_CardBoxD_01_1513.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_CratePlastic_A_04.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_CratePlastic_B_03.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_CratePlastic_B_05.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_CratePlastic_C_02.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_CratePlastic_E_02.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_PushcartA_02.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_RackPile_04.usd",
-    "/Isaac/Environments/Simple_Warehouse/Props/SM_RackPile_03.usd",
+    "/Isaac/Robots/UniversalRobots/ur3e/ur3e.usd",
+    "/Isaac/Robots/UniversalRobots/ur5e/ur5e.usd",
+    "/Isaac/Robots/UniversalRobots/ur10e/ur10e.usd",
+    "/Isaac/Robots/FrankaRobotics/FrankaPanda/franka.usd",
+    "/Isaac/Robots/Ufactory/lite6/lite6.usd",
+    "/Isaac/Robots/Ufactory/uf850/uf850.usd",
+    "/Isaac/Robots/Ufactory/xarm6/xarm6.usd",
+    "/Isaac/Robots/Ufactory/xarm_gripper/xarm_gripper.usd",
+    "/Isaac/Robots/Ufactory/lite6_gripper/uf_lite_gripper.usd",
 ]
 
 DISTRACTORS_ADDITIONAL = [
@@ -332,7 +310,7 @@ def add_td06s():
 
     # spawn many copies for bin-picking scenario (replicator will place them under /Replicator/Ref_Xform_*)
     # adjust count as needed
-    rep_obj_list = [rep.create.from_usd(p, semantics=[("class", "td06")], count=100) for p in asset_paths]
+    rep_obj_list = [rep.create.from_usd(p, semantics=[("class", "td06")], count=25) for p in asset_paths]
     rep_td06_group = rep.create.group(rep_obj_list)
 
     # give things a few frames to materialize
@@ -592,7 +570,7 @@ def main():
         # Object pose randomization (fixed scale 0.01)
         with rep_td06_group:
             rep.modify.pose(
-                position=rep.distribution.uniform((-0.2, -0.15, 0.02), (0.2, 0.15, 0.2)),
+                position=rep.distribution.uniform((-0.3, -0.2, 0.35), (0.3, 0.2, 0.5)),
                 rotation=rep.distribution.uniform((0, -45, 0), (0, 45, 360)),
                 scale=rep.distribution.uniform((0.01, 0.01, 0.01), (0.01, 0.01, 0.01)),
             )
@@ -601,8 +579,8 @@ def main():
         if args.distractors != "None":
             with rep_distractor_group:
                 rep.modify.pose(
-                    position=rep.distribution.uniform((-6, -6, 0), (6, 12, 0)),
-                    rotation=rep.distribution.uniform((0, 0, 0), (0, 0, 360)),
+                    position=rep.distribution.uniform((-2, -2, 0), (2, 2, 0)),
+                    rotation=rep.distribution.uniform((0, 0, 0), (0, 30, 360)),
                     scale=rep.distribution.uniform(1, 1.5),
                 )
 

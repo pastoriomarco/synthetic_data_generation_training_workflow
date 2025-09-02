@@ -19,9 +19,9 @@ SIM_PY=${SIM_PY:-"$HOME/isaacsim/_build/linux-x86_64/release/python.sh"}
 WIDTH=${WIDTH:-640}
 HEIGHT=${HEIGHT:-640}
 HEADLESS=${HEADLESS:-True}
-FRAMES_TRAIN=${FRAMES_TRAIN:-1000}
-FRAMES_VAL=${FRAMES_VAL:-300}
-FRAMES_TEST=${FRAMES_TEST:-300}
+FRAMES_TRAIN=${FRAMES_TRAIN:-2500}
+FRAMES_VAL=${FRAMES_VAL:-500}
+FRAMES_TEST=${FRAMES_TEST:-500}
 OUT_ROOT=${OUT_ROOT:-"$HOME/synthetic_out"}
 
 # Resolve paths relative to this script
@@ -78,7 +78,7 @@ run_split() {
     --headless "$HEADLESS" \
     --num_frames "$frames" \
     --width "$WIDTH" --height "$HEIGHT" \
-    --distractors None \
+    --distractors warehouse \
     --data_dir "$OUT_ROOT/$split"
 }
 
