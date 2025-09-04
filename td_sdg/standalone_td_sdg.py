@@ -86,7 +86,7 @@ def _resolve_asset_and_material_dirs(base_dir: str):
     base_dir = _expand(base_dir)
 
     # Candidate locations for the model USD
-    model_name = "10F1100-0606_minimal.usd"
+    model_name = "TDNS06.usd"
     candidates_asset = [
         base_dir,
         os.path.join(base_dir, "models"),
@@ -118,7 +118,7 @@ ASSET_DIR, MATERIALS_DIR = _resolve_asset_and_material_dirs(CONFIG["source_dir"]
 
 # Your object(s) (resolved at runtime)
 def get_td06_asset_paths():
-    return [os.path.join(ASSET_DIR, "10F1100-0606_minimal.usd")]
+    return [os.path.join(ASSET_DIR, "TDNS06.usd")]
 
 # Distractors (unchanged)
 DISTRACTORS_WAREHOUSE = 2 * [
